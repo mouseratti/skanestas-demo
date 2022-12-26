@@ -1,0 +1,31 @@
+services:
+  db:
+    image: postgres:12-alpine
+    restart: always
+    env_file: [.env]
+  log_agg:
+    image: fluent/fluent-bit:2.0.8
+    restart: always
+    ports:
+      - 24224:24224
+    volumes:
+      - ./resources/cfg/fluent-bit.conf:/fluent-bit/etc/fluent-bit.conf
+    env_file: [.env]
+    depends_on:
+      - db
+  # grafana:
+  #   image: grafana/grafana:9.3.2
+  #   ports:
+  #     - 3000:3000
+  app:
+    build: .
+    restart: always
+    logging:
+      driver: fluentd
+      options:
+        cache-disabled: "true"
+        fluentd-address: localhost:24224
+        mode: non-blocking
+    depends_on: 
+      - db
+      - log_agg
